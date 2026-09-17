@@ -1,0 +1,23 @@
+# Environments and secrets
+.venv/
+venv/
+.env
+
+# Data: regenerable from src/, and too large for git
+data/raw/
+data/processed/
+data/external/
+
+# Model weights: published to the Hugging Face model repo instead
+*.pt
+runs/
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.ipynb_checkpoints/
+
+# macOS
+.DS_Store

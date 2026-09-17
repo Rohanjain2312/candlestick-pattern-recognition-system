@@ -1,0 +1,41 @@
+{
+  "train": {
+    "images": 12151,
+    "instances": {
+      "Hammer": 4798,
+      "ShootingStar": 2825,
+      "BullishEngulfing": 8553,
+      "BearishEngulfing": 10583,
+      "MorningStar": 1354,
+      "EveningStar": 1106,
+      "Doji": 32322,
+      "Harami": 20443
+    }
+  },
+  "val": {
+    "images": 986,
+    "instances": {
+      "Hammer": 475,
+      "ShootingStar": 360,
+      "BullishEngulfing": 457,
+      "BearishEngulfing": 673,
+      "MorningStar": 126,
+      "EveningStar": 144,
+      "Doji": 2957,
+      "Harami": 1696
+    }
+  },
+  "test": {
+    "images": 1917,
+    "instances": {
+      "Hammer": 557,
+      "ShootingStar": 570,
+      "BullishEngulfing": 1178,
+      "BearishEngulfing": 1368,
+      "MorningStar": 198,
+      "EveningStar": 180,
+      "Doji": 5261,
+      "Harami": 2350
+    }
+  }
+}

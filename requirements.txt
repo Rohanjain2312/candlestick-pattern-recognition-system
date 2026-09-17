@@ -1,0 +1,32 @@
+# Pinned to the versions this project was built and verified against.
+# Regenerate after changing a dependency; do not hand-edit a version.
+# Python 3.11.  No Homebrew or system libraries are required.
+
+# Market data and charting
+yfinance==1.7.0
+pandas==3.0.5
+numpy==2.4.6
+pyarrow==25.0.1
+mplfinance==0.12.10b0
+matplotlib==3.11.2
+
+# Rule-based labeling (self-contained wheel: no system TA-Lib C library needed)
+TA-Lib==0.8.0
+
+# Detection
+ultralytics==8.4.154
+torch==2.14.0
+torchvision==0.29.0
+opencv-python-headless==5.0.0.93
+
+# Downstream signal and statistics
+scikit-learn==1.9.1
+scipy==1.17.1
+
+# Publishing and demo
+huggingface-hub==1.31.0
+gradio==6.27.0
+python-dotenv==1.2.3
+
+# Tests
+pytest==9.1.1
