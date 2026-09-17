@@ -157,11 +157,21 @@ def analyse(ticker: str, end_date: str, conf: float):
 # Results tabs
 # --------------------------------------------------------------------------
 def _load(name: str) -> dict | None:
+    """Read a published results file, or None if it was not shipped with the Space.
+
+    The demo must still start when results are missing -- a Space that 500s
+    because a JSON is absent is worse than one that says "not published yet".
+    """
     p = RESULTS_DIR / name
     return json.loads(p.read_text()) if p.exists() else None
 
 
 def detection_table() -> pd.DataFrame:
+    """Per-class detection metrics for the Results tab, with instance counts.
+
+    Support is shown next to every score so a reader can see at a glance which
+    numbers rest on hundreds of examples and which on a few dozen.
+    """
     rep = _load("detection_metrics.json")
     if not rep:
         return pd.DataFrame({"note": ["Detection metrics not published yet."]})
@@ -179,6 +189,7 @@ def detection_table() -> pd.DataFrame:
 
 
 def signal_table() -> pd.DataFrame:
+    """Side-by-side baseline vs +patterns metrics, with the difference column."""
     rep = _load("downstream_signal_comparison.json")
     if not rep:
         return pd.DataFrame({"note": ["Signal study not published yet."]})
@@ -193,6 +204,11 @@ def signal_table() -> pd.DataFrame:
 
 
 def signal_verdict() -> str:
+    """The headline finding, worded from the significance test rather than hope.
+
+    Reports a null result as plainly as a positive one; the demo should not
+    oversell what the numbers support.
+    """
     rep = _load("downstream_signal_comparison.json")
     if not rep:
         return "*Signal study not published yet.*"
@@ -240,6 +256,11 @@ not from human annotation, so this model imitates a published heuristic.
 
 
 def build_ui() -> gr.Blocks:
+    """Assemble the three-tab Gradio interface.
+
+    Results tabs are populated at build time from the published JSON, so the
+    Space does no work per visitor beyond running the detector on demand.
+    """
     with gr.Blocks(title="Candlestick pattern detector",
                    theme=gr.themes.Soft()) as demo:
         gr.Markdown(INTRO)

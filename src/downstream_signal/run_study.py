@@ -14,6 +14,15 @@ study is worth running: using the labels would only re-test whether TA-Lib
 agrees with itself, whereas using the detector's output measures what a model
 that had to *look at the picture* can actually extract, errors included.
 
+**One asymmetry worth stating.** The classifier is fitted on dates running back
+to 1993, and the detector *was* trained on charts from that early period. So the
+pattern features the classifier learns from are sharper than the ones it meets
+at test time, where the detector is genuinely out of sample. That shift makes
+the ``with_patterns`` variant look slightly *worse* than a perfectly matched
+setup would, not better -- so it cannot manufacture a positive result. The
+evaluation window itself starts after the detector's validation period ends,
+which is what keeps the reported comparison out-of-sample for both models.
+
 Detector inference over ~8,400 charts takes several minutes on CPU, so the
 resulting feature frame is cached to parquet and reused.
 """

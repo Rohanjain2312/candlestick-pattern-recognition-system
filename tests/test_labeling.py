@@ -14,6 +14,7 @@ from src.labeling.talib_labeler import PATTERN_RULES, label_patterns, pattern_co
 
 
 def test_returns_expected_schema(synthetic_ohlc):
+    """Downstream code indexes these columns by name, so the schema is part of the contract."""
     labels = label_patterns(synthetic_ohlc)
     assert list(labels.columns) == [
         "position", "date", "pattern", "class_id", "span", "direction"
@@ -22,6 +23,7 @@ def test_returns_expected_schema(synthetic_ohlc):
 
 
 def test_every_class_has_a_rule():
+    """A configured class with no rule would never be labelled, and the detector would learn it cannot occur."""
     # A class present in config but missing a rule would silently never be
     # labelled, and the detector would learn it can never occur.
     assert set(PATTERN_RULES) == set(config.CLASSES)
@@ -29,6 +31,7 @@ def test_every_class_has_a_rule():
 
 
 def test_class_id_matches_config(synthetic_ohlc):
+    """Ids are baked into the label files; a mismatch yields a model that reports the wrong class forever."""
     labels = label_patterns(synthetic_ohlc)
     for row in labels.itertuples():
         assert config.CLASSES[row.class_id] == row.pattern
@@ -53,6 +56,7 @@ def test_labels_are_causal(synthetic_ohlc):
 
 
 def test_span_never_runs_off_the_start(synthetic_ohlc):
+    """A pattern whose span predates the series would produce a box over candles that do not exist."""
     labels = label_patterns(synthetic_ohlc)
     assert (labels["position"] - labels["span"] + 1 >= 0).all()
 
@@ -83,6 +87,7 @@ def test_explicit_doji_is_detected():
 
 
 def test_pattern_counts_includes_absent_classes(synthetic_ohlc):
+    """Absent classes must report 0 rather than vanish, so the balance table stays complete."""
     counts = pattern_counts(label_patterns(synthetic_ohlc))
     assert list(counts.index) == config.CLASSES
     assert (counts >= 0).all()

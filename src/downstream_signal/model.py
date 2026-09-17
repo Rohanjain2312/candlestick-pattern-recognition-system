@@ -64,6 +64,12 @@ class FitResult:
 
     @property
     def y_pred(self) -> np.ndarray:
+        """Hard class predictions at the natural 0.5 threshold.
+
+        The threshold is deliberately not tuned. Choosing it to maximise the
+        score on the very period being reported would be a hidden form of
+        fitting to the test set.
+        """
         return (self.y_prob >= 0.5).astype(int)
 
 

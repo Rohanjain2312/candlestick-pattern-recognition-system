@@ -8,6 +8,7 @@ import json, pathlib, sys
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[1]))
 from src import config
 
+# Tiny constructors so the notebook bodies below stay readable as prose.
 def md(*l): return {"cell_type": "markdown", "metadata": {}, "source": "\n".join(l)}
 def code(*l): return {"cell_type": "code", "metadata": {}, "execution_count": None,
                       "outputs": [], "source": "\n".join(l)}

@@ -72,6 +72,25 @@ def load_model(local_path: str | None = None):
     return YOLO(weights)
 
 
+def _as_bgr(image):
+    """Convert an RGB array to the BGR order Ultralytics expects.
+
+    Ultralytics documents its ``np.ndarray`` input as **BGR**, and during
+    training it reads the PNGs off disk with ``cv2.imread``, which is also BGR.
+    ``render_charts.render_window`` returns **RGB**, because that is what
+    matplotlib produces and what any image viewer expects.
+
+    Handing that RGB array straight to ``predict`` would therefore swap red and
+    blue at inference time only: file-path inference (the evaluation scripts)
+    would stay correct while array inference (the demo) silently showed the
+    model blue down-candles it had never been trained on.  Converting here keeps
+    the two paths identical, which is the whole point of sharing one renderer.
+    """
+    if isinstance(image, np.ndarray) and image.ndim == 3 and image.shape[2] == 3:
+        return np.ascontiguousarray(image[:, :, ::-1])
+    return image
+
+
 def detect(
     images,
     conf: float = config.CONF_THRESHOLD,
@@ -81,7 +100,10 @@ def detect(
     """Detect patterns in one or more chart images.
 
     Args:
-        images: a single image (path or HxWx3 array) or a list of them.
+        images: a single image or a list of them.  Each item is either a path
+            to a PNG or an **RGB** ``HxWx3`` uint8 array as returned by
+            ``render_window``; arrays are converted to BGR internally so both
+            forms give identical results.
         conf: confidence floor; detections below it are discarded.
         local_path: optional explicit weights path.
         batch: inference batch size.
@@ -94,7 +116,7 @@ def detect(
     """
     model = load_model(local_path)
     single = not isinstance(images, (list, tuple))
-    items = [images] if single else list(images)
+    items = [_as_bgr(im) for im in ([images] if single else list(images))]
 
     out: list[list[dict]] = []
     for i in range(0, len(items), batch):

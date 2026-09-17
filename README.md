@@ -135,6 +135,14 @@ Feeding the TA-Lib labels back in would only prove that TA-Lib is
 self-consistent. Using the detector's output — errors included — measures what a
 model that had to read the picture can actually extract.
 
+**An asymmetry, stated rather than buried.** The downstream classifier trains on
+dates going back to 1993, and the detector saw charts from that early period
+during its own training. The pattern features it learns from are therefore
+sharper than the ones it meets in the evaluation window, where the detector is
+genuinely out of sample. This shift works *against* the pattern variant, so it
+cannot manufacture a positive result — but it is a real property of the setup
+and belongs in the open.
+
 **No GAN, and no horizontal flips.** Class imbalance is handled with
 augmentation instead. Flip and rotation are explicitly disabled: mirroring a
 candlestick chart runs time backwards and turns a Bullish Engulfing into

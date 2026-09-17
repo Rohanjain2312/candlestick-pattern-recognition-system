@@ -25,14 +25,28 @@ END_MARKER = "<!-- RESULTS:END -->"
 
 
 def _load(path: Path) -> dict | None:
+    """Read a results JSON, or None if that stage has not been run yet."""
     return json.loads(path.read_text()) if path.exists() else None
 
 
 def _num(x, digits: int = 3) -> str:
+    """Format a metric, rendering a missing value as "n/a" rather than 0.
+
+    A class absent from the test split has no precision; printing 0.000 would
+    read as "the model failed" instead of "there was nothing to score".
+    """
     return f"{x:.{digits}f}" if isinstance(x, (int, float)) else "n/a"
 
 
 def detection_section(rep: dict | None) -> str:
+    """Render the per-class detection table, or a "not yet run" placeholder.
+
+    Args:
+        rep: parsed ``detection_metrics.json``, or None.
+
+    Returns:
+        Markdown for the detection part of the results block.
+    """
     if not rep:
         return ("### Detection\n\n_Not yet run. Fine-tune the detector "
                 "(`notebooks/03_yolo_finetune_colab.ipynb`), then "
@@ -65,6 +79,18 @@ def detection_section(rep: dict | None) -> str:
 
 
 def signal_section(rep: dict | None) -> str:
+    """Render the signal comparison, with wording chosen by what the data says.
+
+    The verdict sentence branches three ways -- no measurable effect, a positive
+    effect, or a negative one -- so the README states the actual finding rather
+    than a template that only reads well if the result was good.
+
+    Args:
+        rep: parsed ``downstream_signal_comparison.json``, or None.
+
+    Returns:
+        Markdown for the signal part of the results block.
+    """
     if not rep:
         return ("### Downstream signal\n\n_Not yet run. "
                 "`python -m src.downstream_signal.run_study`._\n")

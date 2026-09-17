@@ -21,6 +21,7 @@ def daily_frame() -> pd.DataFrame:
 
 
 def test_splits_are_ordered_and_non_overlapping(daily_frame):
+    """Train must precede val must precede test, with every split non-empty."""
     r = split_ranges(daily_frame)
     assert r["train"].stop <= r["val"].start
     assert r["val"].stop <= r["test"].start
@@ -36,6 +37,7 @@ def test_val_windows_contain_no_train_bar(daily_frame):
 
 
 def test_test_windows_contain_no_val_bar(daily_frame):
+    """The embargo applies at both boundaries, not just the first."""
     r = split_ranges(daily_frame)
     first_test_window_start = r["test"].start - config.WINDOW + 1
     last_val_bar = r["val"].stop - 1
@@ -43,6 +45,7 @@ def test_test_windows_contain_no_val_bar(daily_frame):
 
 
 def test_split_boundaries_match_configured_dates(daily_frame):
+    """Splits must land where config says, or the README's stated periods are wrong."""
     r = split_ranges(daily_frame)
     assert daily_frame.index[r["train"].stop - 1] <= pd.Timestamp(config.TRAIN_END)
     assert daily_frame.index[r["val"].start] > pd.Timestamp(config.TRAIN_END)
@@ -50,6 +53,7 @@ def test_split_boundaries_match_configured_dates(daily_frame):
 
 
 def test_no_window_starts_before_the_series(daily_frame):
+    """A window needs WINDOW bars of history; the first valid end position is WINDOW-1."""
     r = split_ranges(daily_frame)
     assert r["train"].start >= config.WINDOW - 1
 
@@ -69,6 +73,7 @@ def test_only_fully_contained_spans_are_labelled():
 
 
 def test_labels_outside_the_window_are_ignored():
+    """Hits before the window starts or after it ends must not be drawn on this chart."""
     window, end = 20, 100
     by_position = {
         end - window: [{"span": 1, "pattern": "Doji"}],       # one bar too early

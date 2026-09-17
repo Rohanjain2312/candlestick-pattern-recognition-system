@@ -72,14 +72,18 @@ def walk_forward(
     boundaries = pd.date_range(
         start=pd.Timestamp(eval_start), end=X.index.max(), freq=refit_freq
     )
-    boundaries = pd.DatetimeIndex([pd.Timestamp(eval_start), *boundaries]).unique()
+    boundaries = (
+        pd.DatetimeIndex([pd.Timestamp(eval_start), *boundaries]).unique().sort_values()
+    )
 
     dates: list[pd.Timestamp] = []
     probs: list[float] = []
     for i, start in enumerate(boundaries):
         stop = boundaries[i + 1] if i + 1 < len(boundaries) else None
         train_mask = X.index < start
-        test_mask = (X.index >= start) & (X.index < stop if stop is not None else True)
+        test_mask = X.index >= start
+        if stop is not None:
+            test_mask &= X.index < stop
         if train_mask.sum() < 250 or test_mask.sum() == 0:
             continue
         model = make_model()

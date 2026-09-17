@@ -177,6 +177,12 @@ def build_signal_set(ticker: str = config.TICKER) -> int:
 
 
 def main() -> None:
+    """Build the whole dataset and print the per-class balance table.
+
+    Tickers are processed in parallel because rendering is CPU-bound and each
+    ticker is fully independent. A ticker that fails is logged and skipped
+    rather than aborting a build that is minutes in.
+    """
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--stride", type=int, default=config.DETECTION_STRIDE,
                         help="train-split stride; val/test always use EVAL_STRIDE")

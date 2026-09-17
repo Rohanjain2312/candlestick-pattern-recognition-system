@@ -36,6 +36,12 @@ CREDENTIAL_HELPER = (
 
 
 def _token() -> str:
+    """Read GITHUB_TOKEN from .env into the environment and return it.
+
+    Raises:
+        RuntimeError: if the token is absent or blank, with a message pointing
+            at .env.example rather than leaking anything about the value.
+    """
     from dotenv import load_dotenv
 
     load_dotenv(config.PROJECT_ROOT / ".env")
@@ -134,6 +140,7 @@ def push(token: str, remote_url: str, branch: str = "main") -> None:
 
 
 def main() -> None:
+    """Create the repo if needed, optionally commit, and push. Prints the URL."""
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--message", default=None, help="commit before pushing")
     parser.add_argument("--no-push", action="store_true")

@@ -25,6 +25,7 @@ OHLC_COLUMNS = ["Open", "High", "Low", "Close", "Volume"]
 
 
 def _cache_path(ticker: str) -> Path:
+    """Where a ticker's cached bars live. One parquet per symbol."""
     return config.RAW_DIR / f"{ticker}.parquet"
 
 
