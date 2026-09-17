@@ -75,7 +75,72 @@ def detection_section(rep: dict | None) -> str:
         "class and hides how the detector does on the common ones.",
         "",
     ]
+    lines += _difficulty_note(rep["per_class"])
     return "\n".join(lines)
+
+
+# Patterns defined by a relationship between whole candle bodies, versus those
+# defined by a proportion within a single candle. The split is a property of the
+# TA-Lib rules, not of this model, so it is declared rather than inferred.
+_RELATIONAL = {"BullishEngulfing", "BearishEngulfing", "Harami"}
+
+
+def _difficulty_note(per_class: dict) -> list[str]:
+    """Describe which classes the detector finds easy or hard, from the numbers.
+
+    Computed rather than written by hand so the observation cannot drift out of
+    step with a re-run. Returns an empty list if too few classes were scored to
+    say anything meaningful.
+    """
+    scored = {c: v for c, v in per_class.items()
+              if isinstance(v.get("mAP50"), (int, float))}
+    if len(scored) < 4:
+        return []
+
+    ranked = sorted(scored.items(), key=lambda kv: -kv[1]["mAP50"])
+    best = [c for c, _ in ranked[:3]]
+    # Exclude any overlap: with few scored classes the two ends can otherwise
+    # name the same class as both strongest and weakest.
+    worst = [c for c, _ in ranked[-3:] if c not in best]
+    if not worst:
+        return []
+
+    # A class the model *misses* has low recall; one it *mislabels* has low
+    # precision with recall intact. Which of the two it is changes what you would
+    # do about it, so the distinction is drawn explicitly.
+    def _misses_more_than_mislabels(v: dict) -> bool:
+        """True when recall lags precision: the model skips rather than guesses."""
+        r, p_ = v.get("recall"), v.get("precision")
+        return isinstance(r, (int, float)) and isinstance(p_, (int, float)) and r < p_
+
+    missed = [c for c in worst if _misses_more_than_mislabels(scored[c])]
+    relational_hits = [c for c in best if c in _RELATIONAL]
+
+    out = ["**Which patterns the detector finds easy, and why.** "]
+    out[-1] += (
+        f"The strongest classes are {', '.join(best)}; the weakest are "
+        f"{', '.join(worst)}. "
+    )
+    if relational_hits:
+        out[-1] += (
+            "The pattern is not random: classes defined by a *relationship between "
+            "whole candle bodies* — is this body larger than the previous one, is it "
+            "contained within it — are close to solved, because that is a crisp "
+            "geometric comparison at chart scale. The weaker classes are the ones "
+            "defined by a *proportion inside a single candle*, such as a lower wick "
+            "at least twice the body. At 640x640 with 20 candles, a body is only a "
+            "few pixels tall, so the very measurement the rule depends on is the one "
+            "the image barely resolves. "
+        )
+    if missed:
+        out[-1] += (
+            f"Their errors are mostly **misses rather than mislabels** — the model "
+            f"declines to call a pattern rather than calling the wrong one — which "
+            f"is the safer failure for a downstream signal, since it removes "
+            f"observations instead of corrupting them."
+        )
+    out.append("")
+    return out
 
 
 def signal_section(rep: dict | None) -> str:

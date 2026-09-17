@@ -12,3 +12,6 @@ mplfinance>=0.12.10b0
 yfinance>=0.2.60
 huggingface_hub>=0.25
 TA-Lib>=0.6
+# Ultralytics pulls in plain `opencv-python`, which needs libGL - absent from
+# the Space image and a classic ImportError at startup. Pin the headless build.
+opencv-python-headless>=4.10

@@ -261,8 +261,9 @@ def build_ui() -> gr.Blocks:
     Results tabs are populated at build time from the published JSON, so the
     Space does no work per visitor beyond running the detector on demand.
     """
-    with gr.Blocks(title="Candlestick pattern detector",
-                   theme=gr.themes.Soft()) as demo:
+    # Gradio 6 moved `theme` from the Blocks constructor to launch(); passing it
+    # here is silently ignored, so it is applied at launch instead.
+    with gr.Blocks(title="Candlestick pattern detector") as demo:
         gr.Markdown(INTRO)
 
         with gr.Tab("Detect"):
@@ -313,5 +314,12 @@ def build_ui() -> gr.Blocks:
     return demo
 
 
+# Built at import time so a Hugging Face Space can pick up `demo` directly, and
+# so any construction error surfaces in the build log rather than on first visit.
+demo = build_ui()
+
 if __name__ == "__main__":
-    build_ui().launch(server_name="0.0.0.0" if os.environ.get("SPACE_ID") else "127.0.0.1")
+    demo.launch(
+        theme=gr.themes.Soft(),
+        server_name="0.0.0.0" if os.environ.get("SPACE_ID") else "127.0.0.1",
+    )
