@@ -202,6 +202,140 @@ Code: https://github.com/{config.HF_USER}/{config.GITHUB_REPO}
 """
 
 
+def model_card(detection: dict | None, signal: dict | None) -> str:
+    """Compose the model card, including the downstream finding.
+
+    The Colab notebook writes a card at training time that can only know the
+    detection numbers. Once the signal study has run, the headline result is
+    what a visitor most needs to see, so the card is rewritten here with both --
+    including the null result, stated up front rather than buried.
+    """
+    rows = ""
+    if detection:
+        rows = "\n".join(
+            f"| {c} | {v.get('support', 0)} | "
+            + " | ".join(
+                f"{v[k]:.3f}" if isinstance(v.get(k), (int, float)) else "n/a"
+                for k in ("precision", "recall", "mAP50")
+            ) + " |"
+            for c, v in detection["per_class"].items()
+        )
+        agg = detection["aggregate"]
+        rows += (f"\n| **aggregate** | | **{agg['precision']:.3f}** | "
+                 f"**{agg['recall']:.3f}** | **{agg['mAP50']:.3f}** |")
+
+    finding = "_Downstream signal study not yet run._"
+    if signal:
+        bs = signal["comparison"]["bootstrap"]
+        mc = signal["comparison"]["mcnemar"]
+        ev = signal["evaluation"]
+        b = signal["variants"]["baseline"]
+        majority = max(b["base_rate"], 1.0 - b["base_rate"])
+        finding = (
+            f"Adding this detector's predictions to a plain price-feature baseline "
+            f"changed next-day direction accuracy by **{bs['delta_accuracy']:+.4f}** "
+            f"(95% bootstrap CI {bs['ci95_low']:+.4f} to {bs['ci95_high']:+.4f}, "
+            f"McNemar p = {mc['p_value']:.3f}) over {ev['n_days']} out-of-sample "
+            f"days on {ev['ticker']}. The interval contains zero. Neither variant "
+            f"beats the majority-class rate of {majority:.4f}, and both have a ROC "
+            f"AUC near {b['roc_auc']:.3f}.\n\n"
+            f"**So: this model detects the patterns well, and detecting them does "
+            f"not help predict the next day.** That is the result, reported as found."
+        )
+
+    return f"""---
+license: mit
+tags: [object-detection, yolo, ultralytics, candlestick, finance]
+library_name: ultralytics
+pipeline_tag: object-detection
+---
+
+# Candlestick pattern detector (YOLO11n)
+
+Detects {config.NUM_CLASSES} candlestick patterns in 640x640 renderings of
+{config.WINDOW}-candle daily charts.
+
+## The headline finding
+
+{finding}
+
+## Labels are rule-based, not human-verified
+
+Training boxes came from TA-Lib's `CDLxxx` functions. Nobody annotated these
+charts by hand, so this model imitates a published heuristic. Where TA-Lib and
+an experienced trader would disagree about the same candles, this model follows
+TA-Lib. Detection metrics below therefore measure **agreement with a rule**, not
+correctness.
+
+## Detection, held-out test split
+
+| class | instances | precision | recall | mAP@50 |
+|---|---:|---:|---:|---:|
+{rows}
+
+Reported per class because the classes are very unevenly represented. The
+pattern in those numbers is not random: classes defined by a relationship
+between whole candle bodies (Engulfing, Harami) are close to solved, while those
+defined by a proportion inside a single candle (Hammer, Shooting Star, the
+Stars) are much harder -- at this resolution a candle body is only a few pixels
+tall, so the measurement the rule depends on is the one the image barely
+resolves.
+
+## Usage
+
+```python
+from huggingface_hub import hf_hub_download
+from ultralytics import YOLO
+
+model = YOLO(hf_hub_download("{config.HF_MODEL_REPO}", "best.pt"))
+results = model.predict("chart.png", conf={config.CONF_THRESHOLD})
+```
+
+Charts must be rendered the same way the training data was: {config.WINDOW}
+candles, {config.IMG_SIZE}x{config.IMG_SIZE}, no axes, no gridlines, no volume
+panel. Use `src/data_pipeline/render_charts.py` from the repo -- a differently
+drawn chart is an input distribution this model has never seen. Note also that
+Ultralytics expects **BGR** arrays while most renderers emit RGB.
+
+## Splits
+
+Chronological with an embargo gap, never random. Consecutive windows overlap in
+19 of 20 candles, so the first {config.EMBARGO_BARS} windows after each boundary
+are discarded and no test chart shares a candle with a training chart.
+
+- Code: https://github.com/{config.HF_USER}/{config.GITHUB_REPO}
+- Dataset: https://huggingface.co/datasets/{config.HF_DATASET_REPO}
+- Demo: https://huggingface.co/spaces/{config.HF_SPACE_REPO}
+
+Not investment advice.
+"""
+
+
+def push_model_card(token: str | None = None) -> None:
+    """Rewrite the model card from the published results files."""
+    from huggingface_hub import HfApi
+
+    token = token or _token()
+    api = HfApi(token=token)
+    det_p = config.RESULTS_DIR / "detection_metrics.json"
+    sig_p = config.RESULTS_DIR / "downstream_signal_comparison.json"
+    card = model_card(
+        json.loads(det_p.read_text()) if det_p.exists() else None,
+        json.loads(sig_p.read_text()) if sig_p.exists() else None,
+    )
+    api.upload_file(
+        path_or_fileobj=card.encode(), path_in_repo="README.md",
+        repo_id=config.HF_MODEL_REPO, repo_type="model",
+        commit_message="model card with detection and downstream results",
+    )
+    api.upload_folder(
+        folder_path=str(config.RESULTS_DIR), path_in_repo="results",
+        repo_id=config.HF_MODEL_REPO, repo_type="model",
+        allow_patterns=["*.json"], commit_message="publish results json",
+    )
+    logger.info("model card updated: https://huggingface.co/%s", config.HF_MODEL_REPO)
+
+
 def push_space(token: str | None = None) -> None:
     """Deploy the Gradio Space.
 
@@ -254,7 +388,8 @@ def push_space(token: str | None = None) -> None:
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("target", choices=["repos", "dataset", "space", "all"])
+    parser.add_argument("target",
+                        choices=["repos", "dataset", "space", "card", "all"])
     args = parser.parse_args()
     logging.basicConfig(level=logging.INFO, format="%(levelname)s %(message)s")
 
@@ -263,5 +398,7 @@ if __name__ == "__main__":
         ensure_repos(tok)
     if args.target in ("dataset", "all"):
         push_dataset(tok)
+    if args.target in ("card", "all"):
+        push_model_card(tok)
     if args.target in ("space", "all"):
         push_space(tok)
