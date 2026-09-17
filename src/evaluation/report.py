@@ -243,7 +243,7 @@ def signal_section(rep: dict | None) -> str:
         f"+patterns {p['accuracy'] - majority:+.4f}.",
         "",
     ]
-    lines += _returns_caveat(b, p, majority)
+    lines += returns_caveat(b, p, majority)
     act = rep.get("detector_activity")
     if act:
         lines += [
@@ -257,7 +257,7 @@ def signal_section(rep: dict | None) -> str:
     return "\n".join(lines)
 
 
-def _returns_caveat(b: dict, p: dict, majority: float) -> list[str]:
+def returns_caveat(b: dict, p: dict, majority: float) -> list[str]:
     """Warn when the strategy figures look good for a reason that is not skill.
 
     A classifier with no ranking ability that nonetheless predicts "up" almost

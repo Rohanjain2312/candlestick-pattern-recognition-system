@@ -195,12 +195,23 @@ def signal_table() -> pd.DataFrame:
         return pd.DataFrame({"note": ["Signal study not published yet."]})
     b, p = rep["variants"]["baseline"], rep["variants"]["with_patterns"]
     keys = [("accuracy", "Accuracy"), ("roc_auc", "ROC AUC"), ("brier", "Brier (lower better)"),
+            ("share_predicted_up", 'Share of days predicted "up"'),
             ("strategy_return_net", "Strategy return, net"), ("sharpe_net", "Sharpe, net")]
-    return pd.DataFrame([
+    rows = [
         {"metric": label, "baseline": round(b[k], 4), "+ patterns": round(p[k], 4),
          "difference": round(p[k] - b[k], 4)}
-        for k, label in keys
-    ])
+        for k, label in keys if k in b and k in p
+    ]
+    # Reference rows. Without these a reader compares the strategy Sharpe against
+    # nothing, and an always-long rule looks like skill.
+    majority = max(b["base_rate"], 1.0 - b["base_rate"])
+    rows.append({"metric": "Majority-class rate (always \u201cup\u201d)",
+                 "baseline": round(majority, 4), "+ patterns": "", "difference": ""})
+    if "buy_hold_sharpe" in b:
+        rows.append({"metric": "Buy and hold Sharpe, same days",
+                     "baseline": round(b["buy_hold_sharpe"], 4),
+                     "+ patterns": "", "difference": ""})
+    return pd.DataFrame(rows)
 
 
 def signal_verdict() -> str:
@@ -213,6 +224,7 @@ def signal_verdict() -> str:
     if not rep:
         return "*Signal study not published yet.*"
     c, ev = rep["comparison"], rep["evaluation"]
+    b, p = rep["variants"]["baseline"], rep["variants"]["with_patterns"]
     bs, mc = c["bootstrap"], c["mcnemar"]
     significant = mc["p_value"] < 0.05 and not (bs["ci95_low"] <= 0 <= bs["ci95_high"])
     verdict = (
@@ -224,9 +236,16 @@ def signal_verdict() -> str:
         "margin.** The size of the effect still matters more than its "
         "significance — read the interval below before concluding anything."
     )
+    from src.evaluation.report import returns_caveat
+
+    majority = max(b["base_rate"], 1.0 - b["base_rate"])
+    caveat = "\n".join(returns_caveat(b, p, majority))
+
     return f"""### Does detecting a pattern help predict tomorrow?
 
 {verdict}
+
+{caveat}
 
 | | |
 |---|---|
