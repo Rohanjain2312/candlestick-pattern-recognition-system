@@ -1,0 +1,73 @@
+{
+  "split": "test",
+  "n_images": 1917,
+  "aggregate": {
+    "mAP50": 0.8724123071892503,
+    "mAP50_95": 0.8718758455949607,
+    "precision": 0.8082462743690657,
+    "recall": 0.8393576490328964
+  },
+  "per_class": {
+    "Hammer": {
+      "precision": 0.6654212423758242,
+      "recall": 0.7199281867145422,
+      "mAP50": 0.7568866247342366,
+      "mAP50_95": 0.7556668987481101,
+      "support": 557
+    },
+    "ShootingStar": {
+      "precision": 0.8010309945592764,
+      "recall": 0.7982456140350878,
+      "mAP50": 0.8926607504399643,
+      "mAP50_95": 0.8925256580347425,
+      "support": 570
+    },
+    "BullishEngulfing": {
+      "precision": 0.9991374145463604,
+      "recall": 0.9832815048461224,
+      "mAP50": 0.9946507771221412,
+      "mAP50_95": 0.9946507771221412,
+      "support": 1178
+    },
+    "BearishEngulfing": {
+      "precision": 0.9083673931667479,
+      "recall": 0.9970760233918129,
+      "mAP50": 0.9755800939245957,
+      "mAP50_95": 0.9755733732041489,
+      "support": 1368
+    },
+    "MorningStar": {
+      "precision": 0.6016488757441398,
+      "recall": 0.7727272727272727,
+      "mAP50": 0.7721920053089049,
+      "mAP50_95": 0.7708572327595032,
+      "support": 198
+    },
+    "EveningStar": {
+      "precision": 0.7732886385352815,
+      "recall": 0.5495364191627465,
+      "mAP50": 0.6689252142139819,
+      "mAP50_95": 0.6674587179974372,
+      "support": 180
+    },
+    "Doji": {
+      "precision": 0.8931647338870329,
+      "recall": 0.9481087245770766,
+      "mAP50": 0.9748914505457008,
+      "mAP50_95": 0.9747997440387252,
+      "support": 5261
+    },
+    "Harami": {
+      "precision": 0.8239109021378626,
+      "recall": 0.9459574468085107,
+      "mAP50": 0.9435115412244773,
+      "mAP50_95": 0.9434743628548767,
+      "support": 2350
+    }
+  },
+  "caveats": [
+    "Labels are TA-Lib CDLxxx rules, not human annotation; these metrics measure agreement with that rule, not with a trader's judgement.",
+    "Splits are chronological with an embargo gap; never random.",
+    "The test split contains SPY only."
+  ]
+}

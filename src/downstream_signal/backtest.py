@@ -120,7 +120,11 @@ class VariantMetrics:
     strategy_return_net: float
     buy_hold_return: float
     sharpe_net: float
+    buy_hold_sharpe: float
     n_trades: int
+    # Share of days the model said "up". A value near 1.0 means the strategy is
+    # essentially buy-and-hold, and its return says nothing about the model.
+    share_predicted_up: float
 
 
 def _strategy_stats(
@@ -157,6 +161,12 @@ def score_variant(
     base = float(np.mean(res.y_true))
     acc = float(accuracy_score(res.y_true, res.y_pred))
     gross, net, sharpe, trades = _strategy_stats(res.y_prob, fwd, cost_bps)
+    # Buy-and-hold on the same days, same units. Quoting a strategy Sharpe
+    # without this one invites a comparison against nothing.
+    bh_sharpe = (
+        float(np.mean(fwd) / np.std(fwd) * np.sqrt(TRADING_DAYS))
+        if np.std(fwd) > 0 else 0.0
+    )
     return VariantMetrics(
         name=res.name,
         n_days=int(len(res.y_true)),
@@ -170,7 +180,9 @@ def score_variant(
         strategy_return_net=net,
         buy_hold_return=float(np.prod(1.0 + fwd) - 1.0),
         sharpe_net=sharpe,
+        buy_hold_sharpe=bh_sharpe,
         n_trades=trades,
+        share_predicted_up=float(np.mean(res.y_pred)),
     )
 
 

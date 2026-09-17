@@ -1,0 +1,65 @@
+{
+  "evaluation": {
+    "ticker": "SPY",
+    "eval_start": "2019-01-01",
+    "eval_end": "2026-09-15",
+    "n_days": 1936,
+    "cost_bps_per_turn": 1.0,
+    "protocol": "expanding-window walk-forward, annual refit, no shuffling"
+  },
+  "variants": {
+    "baseline": {
+      "name": "baseline",
+      "n_days": 1936,
+      "accuracy": 0.5526859504132231,
+      "base_rate": 0.5537190082644629,
+      "accuracy_over_base": -0.0010330578512397492,
+      "roc_auc": 0.49636258810116096,
+      "f1": 0.6976256983240223,
+      "brier": 0.24808183680914256,
+      "strategy_return_gross": 2.8091677253459633,
+      "strategy_return_net": 2.751339607796969,
+      "buy_hold_return": 2.3692128004862822,
+      "sharpe_net": 1.0738280666231743,
+      "buy_hold_sharpe": 0.9173763100963701,
+      "n_trades": 153,
+      "share_predicted_up": 0.9256198347107438
+    },
+    "with_patterns": {
+      "name": "with_patterns",
+      "n_days": 1936,
+      "accuracy": 0.556301652892562,
+      "base_rate": 0.5537190082644629,
+      "accuracy_over_base": 0.0025826446280990956,
+      "roc_auc": 0.49737100089828634,
+      "f1": 0.6970017636684304,
+      "brier": 0.24836919491110068,
+      "strategy_return_gross": 2.9492282321260737,
+      "strategy_return_net": 2.8575133630949594,
+      "buy_hold_return": 2.3692128004862822,
+      "sharpe_net": 1.0947814057725351,
+      "buy_hold_sharpe": 0.9173763100963701,
+      "n_trades": 235,
+      "share_predicted_up": 0.9106404958677686
+    }
+  },
+  "comparison": {
+    "mcnemar": {
+      "baseline_right_patterns_wrong": 27,
+      "patterns_right_baseline_wrong": 34,
+      "discordant_pairs": 61,
+      "p_value": 0.4426260049464714
+    },
+    "bootstrap": {
+      "delta_accuracy": 0.003615702479338845,
+      "ci95_low": -0.004132231404958664,
+      "ci95_high": 0.011363636363636354,
+      "prob_delta_positive": 0.8012
+    },
+    "delta_roc_auc": 0.0010084127971253798
+  },
+  "detector_activity": {
+    "share_of_days_with_a_detection_on_the_last_candle": 0.3185977421271539,
+    "mean_detections_per_day": 0.3612596553773024
+  }
+}

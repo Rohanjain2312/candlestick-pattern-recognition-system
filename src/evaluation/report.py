@@ -85,6 +85,13 @@ def detection_section(rep: dict | None) -> str:
 _RELATIONAL = {"BullishEngulfing", "BearishEngulfing", "Harami"}
 
 
+def _join(names: list[str]) -> str:
+    """Join class names as prose: 'A', 'A and B', 'A, B and C'."""
+    if len(names) <= 1:
+        return names[0] if names else ""
+    return f"{', '.join(names[:-1])} and {names[-1]}"
+
+
 def _difficulty_note(per_class: dict) -> list[str]:
     """Describe which classes the detector finds easy or hard, from the numbers.
 
@@ -118,8 +125,8 @@ def _difficulty_note(per_class: dict) -> list[str]:
 
     out = ["**Which patterns the detector finds easy, and why.** "]
     out[-1] += (
-        f"The strongest classes are {', '.join(best)}; the weakest are "
-        f"{', '.join(worst)}. "
+        f"The strongest classes are {_join(best)}; the weakest are "
+        f"{_join(worst)}. "
     )
     if relational_hits:
         out[-1] += (
@@ -132,12 +139,21 @@ def _difficulty_note(per_class: dict) -> list[str]:
             "few pixels tall, so the very measurement the rule depends on is the one "
             "the image barely resolves. "
         )
+    over = [c for c in worst if c not in missed]
     if missed:
         out[-1] += (
-            f"Their errors are mostly **misses rather than mislabels** — the model "
-            f"declines to call a pattern rather than calling the wrong one — which "
-            f"is the safer failure for a downstream signal, since it removes "
-            f"observations instead of corrupting them."
+            f"On {_join(missed)} the model errs by **missing** rather than "
+            f"mislabelling (recall below precision): it declines to call the "
+            f"pattern rather than calling the wrong one, which for a downstream "
+            f"signal is the safer failure — it removes observations instead of "
+            f"corrupting them. "
+        )
+    if over:
+        out[-1] += (
+            f"On {_join(over)} the balance runs the other way (precision below "
+            f"recall): the model finds most of the real instances but also calls "
+            f"some that the rule does not, so those columns carry false positives "
+            f"as well as noise."
         )
     out.append("")
     return out
@@ -194,6 +210,7 @@ def signal_section(rep: dict | None) -> str:
     rows = [
         ("Accuracy", "accuracy", 4), ("ROC AUC", "roc_auc", 4),
         ("Brier score (lower is better)", "brier", 4), ("F1", "f1", 4),
+        ("Share of days predicted \"up\"", "share_predicted_up", 3),
         ("Strategy return, net of costs", "strategy_return_net", 4),
         ("Sharpe, net", "sharpe_net", 3),
     ]
@@ -213,15 +230,20 @@ def signal_section(rep: dict | None) -> str:
             f"| {label} | {_num(b[key], d)} | {_num(p[key], d)} | "
             f"{_num(p[key] - b[key], d)} |"
         )
+    majority = max(b["base_rate"], 1.0 - b["base_rate"])
     lines += [
-        f"| Majority-class rate | {_num(b['base_rate'], 4)} | | |",
+        f"| Majority-class rate | {_num(majority, 4)} | | |",
         f"| Buy and hold, same period | {_num(b['buy_hold_return'], 4)} | | |",
+        f"| Buy and hold Sharpe | {_num(b.get('buy_hold_sharpe'), 3)} | | |",
         "",
         "The majority-class rate is the accuracy of always predicting \"up\". On a "
-        "long-drifting index it is well above 50%, so any model that merely "
-        "matches it has learned nothing.",
+        "long-drifting index it sits well above 50%, so a model that merely "
+        "matches it has learned nothing. Here **neither variant beats it**: "
+        f"baseline is {b['accuracy'] - majority:+.4f} against it and "
+        f"+patterns {p['accuracy'] - majority:+.4f}.",
         "",
     ]
+    lines += _returns_caveat(b, p, majority)
     act = rep.get("detector_activity")
     if act:
         lines += [
@@ -233,6 +255,42 @@ def signal_section(rep: dict | None) -> str:
             "",
         ]
     return "\n".join(lines)
+
+
+def _returns_caveat(b: dict, p: dict, majority: float) -> list[str]:
+    """Warn when the strategy figures look good for a reason that is not skill.
+
+    A classifier with no ranking ability that nonetheless predicts "up" almost
+    every day produces a long/flat rule that is buy-and-hold with a few days
+    missing. Its return and Sharpe will then track the index, and any small
+    excess is the luck of which days it sat out -- not evidence of an edge.
+    Quoting those numbers without this check is the single easiest way to
+    oversell a null result, so the check is automatic rather than remembered.
+    """
+    aucs = [v.get("roc_auc") for v in (b, p) if isinstance(v.get("roc_auc"), float)]
+    ups = [v.get("share_predicted_up") for v in (b, p)
+           if isinstance(v.get("share_predicted_up"), float)]
+    if not aucs or not ups:
+        return []
+
+    no_ranking = max(aucs) <= 0.52
+    always_long = min(ups) >= 0.85
+    if not (no_ranking and always_long):
+        return []
+
+    bh = b.get("buy_hold_sharpe")
+    bh_txt = f" (buy and hold over the same days: {bh:.3f})" if isinstance(bh, float) else ""
+    return [
+        "> **Do not read the return rows as an edge.** Both variants have a ROC AUC "
+        f"of about {max(aucs):.3f} — no better than chance at ranking one day above "
+        f"another — and both predict \"up\" on at least {min(ups):.0%} of days. The "
+        "strategy is therefore buy-and-hold with a handful of days sat out, and its "
+        f"Sharpe of {p.get('sharpe_net', float('nan')):.3f}{bh_txt} reflects which "
+        "days those happened to be, not an ability to pick them. Accuracy that does "
+        f"not clear the majority-class rate of {majority:.4f} cannot coexist with a "
+        "genuine trading edge.",
+        "",
+    ]
 
 
 def build_report() -> str:

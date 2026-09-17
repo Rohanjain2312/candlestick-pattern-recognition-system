@@ -187,7 +187,7 @@ sdk: gradio
 app_file: app.py
 pinned: false
 license: mit
-short_description: YOLO candlestick pattern detection, and whether it predicts anything
+short_description: YOLO candlestick pattern detector + honest signal test
 ---
 
 # Candlestick pattern detector
